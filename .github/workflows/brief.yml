@@ -1,0 +1,33 @@
+# GitHub Actions の cron は UTC 基準です。
+# 21:05 UTC = 翌朝 6:05 JST（夏時間なし）
+name: Morning Market Brief
+
+on:
+  schedule:
+    - cron: "5 21 * * *"   # 毎朝 6:05 JST に実行（UTC 21:05）
+  workflow_dispatch:        # 手動実行もできます（Actions タブ → Run workflow）
+
+jobs:
+  send-brief:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Send morning brief
+        env:
+          ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
+          GMAIL_ADDRESS:       ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD:  ${{ secrets.GMAIL_APP_PASSWORD }}
+          MAIL_TO:             ${{ secrets.MAIL_TO }}
+          # MODEL: claude-haiku-4-5-20251001  # 変更したい場合はここかシークレットで設定
+        run: python main.py
