@@ -10,6 +10,8 @@ on:
 jobs:
   send-brief:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # 2026-06-16 以降の Node.js 24 強制移行に対応
 
     steps:
       - name: Checkout

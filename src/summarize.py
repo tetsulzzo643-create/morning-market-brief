@@ -5,6 +5,7 @@ summarize.py — Claude API で市況データを要約するモジュール
 デフォルトはコスト重視の claude-haiku-4-5-20251001。
 """
 import os
+import sys
 
 import anthropic
 
@@ -24,18 +25,30 @@ def summarize(raw_data: str) -> str:
     戻り値: Claude が生成した要約テキスト
     """
     model = os.environ.get("MODEL", MODEL_DEFAULT)
-    client = anthropic.Anthropic()  # ANTHROPIC_API_KEY を環境変数から自動読み込み
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        print("[ERROR] ANTHROPIC_API_KEY が設定されていません。GitHub Secret を確認してください。", file=sys.stderr)
+        raise EnvironmentError("ANTHROPIC_API_KEY is not set")
 
-    response = client.messages.create(
-        model=model,
-        max_tokens=1024,
-        system=SYSTEM_PROMPT,
-        messages=[
-            {
-                "role": "user",
-                "content": f"以下の市況データを要約してください。\n\n{raw_data}",
-            }
-        ],
-    )
+    client = anthropic.Anthropic()
+
+    try:
+        response = client.messages.create(
+            model=model,
+            max_tokens=1024,
+            system=SYSTEM_PROMPT,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"以下の市況データを要約してください。\n\n{raw_data}",
+                }
+            ],
+        )
+    except anthropic.AuthenticationError:
+        print("[ERROR] Claude API 認証失敗 (401)。ANTHROPIC_API_KEY が無効または失効しています。GitHub Secret を更新してください。", file=sys.stderr)
+        raise
+    except anthropic.APIStatusError as e:
+        print(f"[ERROR] Claude API エラー (HTTP {e.status_code}): {e.message}", file=sys.stderr)
+        raise
 
     return response.content[0].text
